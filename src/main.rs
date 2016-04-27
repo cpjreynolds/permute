@@ -10,24 +10,62 @@ use num::One;
 use num::Zero;
 
 fn main() {
-    let mut n = [BigUint::zero(), BigUint::zero()];
-    for i in 0..2 {
-        loop {
-            match prompt::<BigUint>(">> ") {
-                Err(..) => println!("Please enter valid input"),
-                Ok(input) => {
-                    n[i] = input;
-                    break;
-                },
-            }
+    let choice = prompt_choice();
+    let (n, r) = prompt_nums();
+    match choice {
+        Choice::C => {
+            let ans = combination(&n, &r);
+            println!("C({}, {}) = {}", n, r, ans);
+        },
+        Choice::P => {
+            let ans = permutation(&n, &r);
+            println!("P({}, {}) = {}", n, r, ans);
+        },
+    }
+}
+
+fn prompt_nums() -> (BigUint, BigUint) {
+    let n;
+    let r;
+
+    loop {
+        match prompt::<BigUint>("Enter `n`\n>> ") {
+            Ok(input) => {
+                n = input;
+                break;
+            },
+            Err(..) => println!("Please enter a valid integer.\n"),
+        }
+    }
+    loop {
+        match prompt::<BigUint>("Enter `r`\n>> ") {
+            Ok(input) => {
+                r = input;
+                break;
+            },
+            Err(..) => println!("Please enter a valid integer.\n"),
         }
     }
 
-    println!("{}", permutations(&n[0], &n[1]));
+    (n, r)
+}
+
+fn prompt_choice() -> Choice {
+    loop {
+        match prompt::<Choice>("Combinations or permutations? [c/p]\n>> ") {
+            Ok(c) => return c,
+            Err(..) => println!("Please enter a valid choice.\n"),
+        }
+    }
+}
+
+// Given two unsigned integers n and r, compute C(n, r).
+fn combination(n: &BigUint, r: &BigUint) -> BigUint {
+    factorial(n) / (factorial(r) * factorial(&(n - r)))
 }
 
 // Given two unsigned integers n and r, compute P(n, r).
-fn permutations(n: &BigUint, r: &BigUint) -> BigUint {
+fn permutation(n: &BigUint, r: &BigUint) -> BigUint {
     factorial(n) / factorial(&(n - r))
 }
 
@@ -56,9 +94,28 @@ fn prompt<T>(sym: &str) -> Result<T>
     try!(stdin.read_line(&mut buf));
     buf.pop(); // Remove newline.
 
-    if let Ok(ret) = buf.parse() {
-        Ok(ret)
-    } else {
-        Err(io::Error::new(io::ErrorKind::InvalidInput, "bad input"))
+    match buf.parse() {
+        Ok(ret) => Ok(ret),
+        Err(..) => Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input")),
     }
 }
+
+enum Choice {
+    C,
+    P,
+}
+
+impl FromStr for Choice {
+    type Err = io::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        if s == "c" || s == "C" {
+            Ok(Choice::C)
+        } else if s == "p" || s == "P" {
+            Ok(Choice::P)
+        } else {
+            Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input"))
+        }
+    }
+}
+
